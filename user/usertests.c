@@ -3064,7 +3064,6 @@ countfree()
 int
 drivetests(int quick, int continuous, char *justone) {
   do {
-    printf("usertests starting\n");
     int free0 = countfree();
     int free1 = 0;
     if (runtests(quicktests, justone, continuous)) {

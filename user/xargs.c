@@ -15,7 +15,7 @@
 // 								in the arg[] string array.
 //
 // Read the arguments from the STDIN(connected
-// to pipe) and store to the arg[] from 
+// to the pipe) and store to the arg[] from 
 // start_idx.
 // ------------------------------------------
 void
@@ -45,8 +45,8 @@ readArg(char *arg[], int start_idx)
 				}
 				return;
 			} else {
-				// Split the string by '\n' and ' '.
-				if(*(buf+i) == '\n' || *(buf+i) == ' '){
+				// Split the string by '\n'.
+				if(*(buf+i) == '\n'){
 					*(buf+i) = 0;	// Add NULL pointer to the end of string
 					arg[start_idx++] = buf;
 					break;
@@ -61,31 +61,58 @@ readArg(char *arg[], int start_idx)
 int
 main(int argc, char *argv[])
 {
-	char *arg[MAXARG];
+	char *arg[MAXARG];			// string array that stores arguments for xargs.
+	char *argExec[MAXARG];	// string array that stores arugments for exec
 	int i;
+	int execArgNum;					// number of arguments per execution.
+	int index = 1;
 	
-	// Initialize the arg[] to NULL pointer.
+	// Initialize arg[] and argExec[] to NULL pointer.
 	for(i = 0; i < MAXARG; i++){
 		arg[i] = 0;
+		argExec[i] = 0;
 	}
-	// Store the existing arguments to arg[].
-	for(i = 0; i < argc-1; i++){
-		arg[i] = argv[i+1];
-	}
-
-	// Store the new arguments to arg[].
-	readArg(arg, argc-1);
 	
-	if(fork() == 0){
-		exec(arg[0], arg);
-	} else {
-		wait(0);
+	// if xargs uses "-n" option.
+	if(strcmp(argv[1], "-n") == 0){
+		execArgNum = atoi(argv[2]);
+		if(execArgNum == 0){
+			fprintf(2, "xargs: syntax error\n");
+			exit(0);
+		}
+		for(i = 0; i < argc - 3; i++){
+			arg[i] = argv[i+3];
+		}
+		// Store the new arguments to arg[].
+		readArg(arg, argc-3);
 
-		// Free the strings.
-		for(i = 0; i < MAXARG; i++){
-			if(arg[i] != 0){
-				free(arg[i]);
-			}
+	} else {
+		execArgNum = MAXARG;
+		// Store the existing arguments to arg[].
+		for(i = 0; i < argc-1; i++){
+			arg[i] = argv[i+1];
+		}
+		// Store the new arguments to arg[].
+		readArg(arg, argc-1);
+	}
+	
+	while(arg[index] != 0){
+		argExec[0] = arg[0];
+		for(i = 1; i < execArgNum+1; i++){
+			argExec[i] = arg[index++];
+		}
+		if(fork() == 0){
+			exec(arg[0], argExec);
+		} else {
+			wait(0);
 		}
 	}
+	// Free the strings.
+	for(i = 0; i < MAXARG; i++){
+		if(arg[i] != 0){
+			free(arg[i]);
+		}
+	}
+	exit(0);
 }
+
