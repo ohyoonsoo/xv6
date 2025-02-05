@@ -202,6 +202,16 @@ proc_pagetable(struct proc *p)
     return 0;
   }
 
+	// map the USYSCALL page just below the trapframe page, store
+	// the process pid.
+	if(uvmalloc(pagetable, USYSCALL, USYSCALL+PGSIZE, 0) == 0){
+		uvmfree(pagetable, 0);
+		printf("error: usyscall\n");
+		return 0;
+	}
+	struct usyscall *u = (struct usyscall *)walkaddr(pagetable, USYSCALL);
+	u->pid = p->pid;
+
   return pagetable;
 }
 
@@ -212,6 +222,7 @@ proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
   uvmunmap(pagetable, TRAMPOLINE, 1, 0);
   uvmunmap(pagetable, TRAPFRAME, 1, 0);
+	uvmunmap(pagetable, USYSCALL, 1, 1);
   uvmfree(pagetable, sz);
 }
 

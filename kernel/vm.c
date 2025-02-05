@@ -490,7 +490,43 @@ copyinstr(pagetable_t pagetable, char *dst, uint64 srcva, uint64 max)
 #ifdef LAB_PGTBL
 void
 vmprint(pagetable_t pagetable) {
-  // your code here
+	static int depth = 0;	// depth in the tree of pagetable. (1 ~ 3)
+	static uint64 va = 0;		// virtual address of the page.
+
+	if(depth == 0){
+		printf("page table %p\n", (void *)pagetable);
+	}
+	depth++;
+  // there are 2^9 = 512 PTEs in a page table.
+	for(int i = 0; i < 512; i++){
+		pte_t pte = pagetable[i];
+
+		// increase the virtual address.
+		if(i != 0){
+			va += (1L << (9 * (3 - depth) + 12));
+		}
+
+		// check if this PTE is valid.
+		if((pte & PTE_V)){
+			uint64 child = PTE2PA(pte);
+
+			// print the line
+			printf("..");
+			for(int j = 1; j < depth; j++){
+				printf(" ..");
+			}
+			printf("%p: pte %p pa %p\n", (void *)va, (void *)pte, (void *)child);
+
+			// check if this PTE points to a lower-level page table.
+			if((pte & (PTE_R|PTE_W|PTE_X)) == 0){
+				vmprint((pagetable_t)child);
+			}
+		}	
+	}
+	// fill zero at the bits that are increased in for-loop.
+	va = va & ~((1L << (9 * (4 - depth + 12))) - 1);
+	depth--;
+	return;
 }
 #endif
 
