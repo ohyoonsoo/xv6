@@ -124,6 +124,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+	p->supersz = STARTSUPERPG;
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -158,10 +159,13 @@ freeproc(struct proc *p)
   if(p->trapframe)
     kfree((void*)p->trapframe);
   p->trapframe = 0;
-  if(p->pagetable)
+	if(p->pagetable){
+		proc_freepagetable(p->pagetable, p->supersz);
     proc_freepagetable(p->pagetable, p->sz);
+	}
   p->pagetable = 0;
   p->sz = 0;
+	p->supersz = STARTSUPERPG;
   p->pid = 0;
   p->parent = 0;
   p->name[0] = 0;
@@ -220,9 +224,12 @@ proc_pagetable(struct proc *p)
 void
 proc_freepagetable(pagetable_t pagetable, uint64 sz)
 {
-  uvmunmap(pagetable, TRAMPOLINE, 1, 0);
-  uvmunmap(pagetable, TRAPFRAME, 1, 0);
-	uvmunmap(pagetable, USYSCALL, 1, 1);
+	if(sz > 0 && sz < STARTSUPERPG){
+		// freeing these pages only when freeing ordinary pages.
+		uvmunmap(pagetable, TRAMPOLINE, 1, 0);
+		uvmunmap(pagetable, TRAPFRAME, 1, 0);
+		uvmunmap(pagetable, USYSCALL, 1, 1);
+	}
   uvmfree(pagetable, sz);
 }
 
@@ -272,16 +279,31 @@ growproc(int n)
 {
   uint64 sz;
   struct proc *p = myproc();
+	
+	if(n % SUPERPGSIZE == 0 && n >= SUPERPGSIZE){
+  	sz = p->supersz;
+	} else {
+		sz = p->sz;
+	}
 
-  sz = p->sz;
   if(n > 0){
     if((sz = uvmalloc(p->pagetable, sz, sz + n, PTE_W)) == 0) {
       return -1;
     }
   } else if(n < 0){
+		if(sz + n == 0){
+			// if it tries to free all user memory
+			return -1;
+		}
     sz = uvmdealloc(p->pagetable, sz, sz + n);
   }
-  p->sz = sz;
+
+	if(n % SUPERPGSIZE == 0 && n >= SUPERPGSIZE){
+		p->supersz = sz;
+	} else {
+		p->sz = sz;
+	}
+	
   return 0;
 }
 
@@ -300,12 +322,14 @@ fork(void)
   }
 
   // Copy user memory from parent to child.
-  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0){
+  if(uvmcopy(p->pagetable, np->pagetable, p->sz) < 0) {
     freeproc(np);
     release(&np->lock);
     return -1;
   }
+	uvmcopy(p->pagetable, np->pagetable, p->supersz);
   np->sz = p->sz;
+	np->supersz = p->supersz;
 
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);

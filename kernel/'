@@ -92,15 +92,15 @@ kalloc(void)
   r = kmem.freelist;
 	// if there's not enough ordinary page,
 	// break a superpage to ordinary pages.
-	if(r == 0){
-		release(&kmem.lock);
-		if(superbreak()){
-			acquire(&kmem.lock);
-			r = kmem.freelist;
-		} else {
-			acquire(&kmem.lock);
-		}
-	}
+//	if(r == 0){
+//		release(&kmem.lock);
+//		if(superbreak()){
+//			acquire(&kmem.lock);
+//			r = kmem.freelist;
+//		} else {
+//			acquire(&kmem.lock);
+//		}
+//	}
   if(r)
     kmem.freelist = r->next;
   release(&kmem.lock);

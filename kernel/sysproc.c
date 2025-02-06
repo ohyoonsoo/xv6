@@ -42,7 +42,12 @@ sys_sbrk(void)
   int n;
 
   argint(0, &n);
-  addr = myproc()->sz;
+
+	if(n % SUPERPGSIZE == 0 && n >= SUPERPGSIZE){
+		addr = myproc()->supersz;
+	} else {
+		addr = myproc()->sz;
+	}
   if(growproc(n) < 0)
     return -1;
   return addr;
