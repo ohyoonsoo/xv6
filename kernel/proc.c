@@ -280,7 +280,7 @@ growproc(int n)
   uint64 sz;
   struct proc *p = myproc();
 	
-	if(n % SUPERPGSIZE == 0 && n >= SUPERPGSIZE){
+	if(n % SUPERPGSIZE == 0 && n / SUPERPGSIZE != 0){
   	sz = p->supersz;
 	} else {
 		sz = p->sz;

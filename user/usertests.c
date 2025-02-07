@@ -2495,6 +2495,7 @@ sbrkbugs(char *s)
   }
   wait(0);
 
+  pid = fork();
   if(pid < 0){
     printf("fork failed\n");
     exit(1);
