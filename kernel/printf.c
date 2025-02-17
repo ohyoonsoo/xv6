@@ -176,3 +176,15 @@ printfinit(void)
   initlock(&pr.lock, "pr");
   pr.locking = 1;
 }
+
+void
+backtrace(void)
+{
+	uint64 fp = r_fp();	// stack frame pointer
+	uint64 boundary = PGROUNDDOWN(fp);
+	
+	while(PGROUNDDOWN(fp) == boundary){
+		printf("%p\n", (void *)(*(uint64 *)(fp-8)));
+		fp = *(uint64 *)(fp-16);
+	}
+}
