@@ -78,6 +78,19 @@ usertrap(void)
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)
+		// check the sigalarm
+		if(!p->introff && p->interval != 0){
+			p->ticks++;
+			if(p->interval == p->ticks){
+				p->ticks = 0;
+				memmove((void*)&(p->sigtrapframe)+40, (void*)p->trapframe+40, sizeof(p->sigtrapframe)-40);
+				// save the program counter in proc structure
+				p->sigtrapframe.epc = p->trapframe->epc;
+				// put the address of handler to sepc.
+				p->trapframe->epc = p->handler;
+				p->introff = 1;
+			}
+		}
     yield();
 
   usertrapret();

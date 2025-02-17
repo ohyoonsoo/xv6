@@ -145,6 +145,12 @@ found:
   memset(&p->context, 0, sizeof(p->context));
   p->context.ra = (uint64)forkret;
   p->context.sp = p->kstack + PGSIZE;
+	
+	// Initialize the sigalarm field
+	p->interval = 0;
+	p->ticks = 0;
+	p->handler = 0;
+	p->introff = 0;
 
   return p;
 }
@@ -613,6 +619,32 @@ kill(int pid)
     release(&p->lock);
   }
   return -1;
+}
+
+// Called by sigalarm system call
+int
+sigalarm(int interval, uint64 handler)
+{
+	struct proc *p = myproc();
+
+	p->interval = interval;
+	p->ticks = 0;
+	p->handler = handler;
+
+	return 0;
+}
+
+// Called by sigreturn system call
+int
+sigreturn(void)
+{
+	struct proc *p = myproc();
+
+	// Insert saved program counter to sepc
+	p->trapframe->epc = p->sigtrapframe.epc;
+	memmove((void*)p->trapframe+40, (void*)&(p->sigtrapframe)+40, sizeof(p->sigtrapframe)-40);
+	p->introff = 0;
+	return p->trapframe->a0;
 }
 
 void
