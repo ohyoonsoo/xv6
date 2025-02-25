@@ -399,3 +399,8 @@ typedef uint64 *pagetable_t; // 512 PTEs
 // Sv39, to avoid having to sign-extend virtual addresses
 // that have the high bit set.
 #define MAXVA (1L << (9 + 9 + 9 + 12 - 1))
+
+
+// For buffer cache
+#define HASH_N 13	// number of hash buckets
+#define DEFAULT_BLOCKNO (uint)(-1)	// default blockno in struct buf

@@ -50,7 +50,7 @@ freerange(void *pa_start, void *pa_end)
   p = (char*)PGROUNDUP((uint64)pa_start);
 
 	// number of pages for each freelist
-	npages = (int)(PGROUNDDOWN((uint64)((char*)pa_end - p) / 8) / PGSIZE);
+	npages = (int)(PGROUNDDOWN((uint64)((char*)pa_end - p) / NCPU) / PGSIZE);
 	
 	// Put the page into the freelist except for the last CPU.	
 	// It is because there would be remainder when we compute
@@ -131,9 +131,6 @@ kalloc(void)
   if(r)
     memset((char*)r, 5, PGSIZE); // fill with junk
 	
-//	if(!r){
-//		printf("not enough memory\n");
-//	}
   return (void*)r;
 }
 
@@ -141,16 +138,8 @@ void *
 steal(void)
 {
 	struct run *r;
-	//int cpu_id;
 	
-	push_off();
-	//cpu_id = cpuid();
-	pop_off();
-
 	for(int i = NCPU-1; i >= 0; i--){
-//		if(i == cpu_id)
-//			continue;
-
 		acquire(&kmemlist[i].lock);
 		r = kmemlist[i].freelist;
 		if(r)
