@@ -1,4 +1,4 @@
-cscope 15 $HOME/Documents/xv6/xv6-labs-2024               0000436160
+cscope 15 $HOME/Documents/xv6/xv6-labs-2024               0000436711
 	@kernel/bio.c
 
 17 
@@ -16110,151 +16110,175 @@ ušt64
 sys_þo£
 ();
 
-107 
+104 
+ušt64
+ 
+sys_mm­
+();
+
+105 
+ušt64
+ 
+sys_munm­
+();
+
+109 
 	$ušt64
  (*
 sysÿÎs
 [])() = {
 
-108 [
+110 [
 SYS_fÜk
 ] 
 sys_fÜk
 ,
 
-109 [
+111 [
 SYS_ex™
 ] 
 sys_ex™
 ,
 
-110 [
+112 [
 SYS_wa™
 ] 
 sys_wa™
 ,
 
-111 [
+113 [
 SYS_pe
 ] 
 sys_pe
 ,
 
-112 [
+114 [
 SYS_»ad
 ] 
 sys_»ad
 ,
 
-113 [
+115 [
 SYS_kžl
 ] 
 sys_kžl
 ,
 
-114 [
+116 [
 SYS_exec
 ] 
 sys_exec
 ,
 
-115 [
+117 [
 SYS_f¡©
 ] 
 sys_f¡©
 ,
 
-116 [
+118 [
 SYS_chdœ
 ] 
 sys_chdœ
 ,
 
-117 [
+119 [
 SYS_dup
 ] 
 sys_dup
 ,
 
-118 [
+120 [
 SYS_g‘pid
 ] 
 sys_g‘pid
 ,
 
-119 [
+121 [
 SYS_sbrk
 ] 
 sys_sbrk
 ,
 
-120 [
+122 [
 SYS_¦“p
 ] 
 sys_¦“p
 ,
 
-121 [
+123 [
 SYS_u±ime
 ] 
 sys_u±ime
 ,
 
-122 [
+124 [
 SYS_Ý’
 ] 
 sys_Ý’
 ,
 
-123 [
+125 [
 SYS_wr™e
 ] 
 sys_wr™e
 ,
 
-124 [
+126 [
 SYS_mknod
 ] 
 sys_mknod
 ,
 
-125 [
+127 [
 SYS_uÆšk
 ] 
 sys_uÆšk
 ,
 
-126 [
+128 [
 SYS_lšk
 ] 
 sys_lšk
 ,
 
-127 [
+129 [
 SYS_mkdœ
 ] 
 sys_mkdœ
 ,
 
-128 [
+130 [
 SYS_þo£
 ] 
 sys_þo£
 ,
 
-129 
+131 [
+SYS_mm­
+] 
+sys_mm­
+,
+
+132 [
+SYS_munm­
+] 
+sys_munm­
+,
+
+133 
 	}
 };
 
-132 
+136 
 	$sysÿÎ
 ()
 
-134 
+138 
 num
 ;
 
-135 
+139 
 ´oc
  *
 p
@@ -16262,7 +16286,7 @@ p
 	`my´oc
 ();
 
-137 
+141 
 num
  = 
 p
@@ -16272,7 +16296,7 @@ p
 a7
 ;
 
-138 if(
+142 if(
 num
  > 0 &&‚um < 
 	`NELEM
@@ -16280,7 +16304,7 @@ num
 sysÿÎs
 ) && syscalls[num]) {
 
-141 
+145 
 p
 ->
 Œ­äame
@@ -16292,11 +16316,11 @@ sysÿÎs
 num
 ]();
 
-143 
+147 
 	`´štf
 ("%d %s: unknown sys call %d\n",
 
-144 
+148 
 p
 ->
 pid
@@ -16306,7 +16330,7 @@ pid
 num
 );
 
-145 
+149 
 p
 ->
 Œ­äame
@@ -16314,7 +16338,7 @@ p
 a0
  = -1;
 
-147 
+151 
 	}
 }
 
@@ -16443,6 +16467,18 @@ a0
 22 
 	#SYS_þo£
  21
+
+	)
+
+23 
+	#SYS_mm­
+ 22
+
+	)
+
+24 
+	#SYS_munm­
+ 23
 
 	)
 
@@ -18393,6 +18429,30 @@ wf
 );
 
 505 
+	}
+}
+
+507 
+ušt64
+
+
+508 
+	$sys_mm­
+()
+
+511 
+	}
+}
+
+513 
+ušt64
+
+
+514 
+	$sys_munm­
+()
+
+517 
 	}
 }
 
@@ -34247,23 +34307,53 @@ fd
 	`u±ime
 ();
 
-29 #ifdeà
+29 *
+	`mm­
+(*
+addr
+, 
+size_t
+ 
+Ën
+, 
+´Ù
+, 
+æags
+, 
+fd
+, 
+off_t
+ 
+off£t
+);
+
+30 
+	`munm­
+(*
+addr
+, 
+size_t
+ 
+Ën
+);
+
+31 #ifdeà
 LAB_NET
 
 
-30 
+32 
 	`bšd
 (
 ušt16
 );
 
-31 
+33 
 	`unbšd
 (
 ušt16
 );
 
-32 
+34 
 	`£nd
 (
 ušt16
@@ -34271,7 +34361,7 @@ ušt16
 ušt32
 , uint16, *, uint32);
 
-33 
+35 
 	`»cv
 (
 ušt16
@@ -34279,49 +34369,49 @@ ušt16
 ušt32
 *, uint16*, *, uint32);
 
-35 #ifdeà
+37 #ifdeà
 LAB_PGTBL
 
 
-36 
+38 
 	`ug‘pid
 ();
 
-37 
+39 
 ušt64
  
 	`pg±e
 (*);
 
-38 
+40 
 	`kpgtbl
 ();
 
-42 
+44 
 	`¡©
 (cÚ¡ *, 
 ¡©
 *);
 
-43 * 
+45 * 
 	`¡rýy
 (*, const *);
 
-44 *
+46 *
 	`memmove
 (*, const *, );
 
-45 * 
+47 * 
 	`¡rchr
 (cÚ¡ *, 
 c
 );
 
-46 
+48 
 	`¡rcmp
 (const *, const *);
 
-47 
+49 
 	$årštf
 (, cÚ¡ *, ...è
 	`__©Œibu‹__
@@ -34331,7 +34421,7 @@ c
 ´štf
 , 2, 3)));
 
-48 
+50 
 	$´štf
 (cÚ¡ *, ...è
 	`__©Œibu‹__
@@ -34341,55 +34431,55 @@ c
 ´štf
 , 1, 2)));
 
-49 * 
+51 * 
 	`g‘s
 (*, 
 max
 );
 
-50 
+52 
 ušt
  
 	`¡¾’
 (const *);
 
-51 * 
+53 * 
 	`mem£t
 (*, , 
 ušt
 );
 
-52 
+54 
 	`©oi
 (const *);
 
-53 
+55 
 	`memcmp
 (cÚ¡ *, cÚ¡ *, 
 ušt
 );
 
-54 *
+56 *
 	`memýy
 (*, cÚ¡ *, 
 ušt
 );
 
-55 #ifdeà
+57 #ifdeà
 LAB_LOCK
 
 
-56 
+58 
 	`¡©i¡ics
 (*, );
 
-60 * 
+62 * 
 	`m®loc
 (
 ušt
 );
 
-61 
+63 
 	`ä“
 (*);
 
@@ -45762,6 +45852,58 @@ eÿÎ
 
 
 107 
+	g»t
+
+
+108 .
+glob®
+ 
+mm­
+
+
+109 
+	gmm­
+:
+
+110 
+li
+ 
+a7
+, 
+SYS_mm­
+
+
+111 
+eÿÎ
+
+
+112 
+	g»t
+
+
+113 .
+glob®
+ 
+munm­
+
+
+114 
+	gmunm­
+:
+
+115 
+li
+ 
+a7
+, 
+SYS_munm­
+
+
+116 
+eÿÎ
+
+
+117 
 	g»t
 
 
