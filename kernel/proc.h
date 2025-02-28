@@ -79,6 +79,16 @@ struct trapframe {
   /* 280 */ uint64 t6;
 };
 
+struct mmap_info {
+	uint64 addr;
+	int len;
+	int prot;
+	int flags;
+	struct file *f;
+	int offset;
+	int valid;
+};
+
 enum procstate { UNUSED, USED, SLEEPING, RUNNABLE, RUNNING, ZOMBIE };
 
 // Per-process state
@@ -104,4 +114,5 @@ struct proc {
   struct file *ofile[NOFILE];  // Open files
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
+	struct mmap_info mmap_info[NMMAP];  // Information for page fault due to mmap
 };

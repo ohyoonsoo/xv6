@@ -197,7 +197,7 @@ mmap_test(void)
     if (buf[i] != 'B')
       err("file page 0 does not contain modifications");
   }
-  if(read(fd, buf, PGSIZE) != PGSIZE/2)
+	if(read(fd, buf, PGSIZE) != PGSIZE/2)
     err("dirty read #2");
   for (i = 0; i < PGSIZE/2; i++){
     if (buf[i] != 'C')
@@ -339,7 +339,6 @@ fork_test(void)
     printf("fork_test failed\n");
     exit(1);
   }
-
   // check that the parent's mappings are still there.
   _v1(p1);
   _v1(p2);
@@ -409,7 +408,7 @@ more_test()
   *(p+PGSIZE) = 'R';
   if(munmap(p+PGSIZE, PGSIZE) == -1)
     err("munmap");
-
+	
   // read the file, check that the first page starts
   // with P and the second page with R.
   fd = open(f, O_RDONLY);

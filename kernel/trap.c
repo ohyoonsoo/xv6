@@ -53,8 +53,9 @@ usertrap(void)
   if(r_scause() == 8){
     // system call
 
-    if(killed(p))
+		if(killed(p)){
       exit(-1);
+		}
 
     // sepc points to the ecall instruction,
     // but we want to return to the next instruction.
@@ -65,7 +66,39 @@ usertrap(void)
     intr_on();
 
     syscall();
-  } else if((which_dev = devintr()) != 0){
+	} else if(r_scause() == 13){
+		// page fault
+		
+		struct mmap_info *mi = 0;
+		//Find the mmap_info structure that cause the page fault
+		for(int i = 0; i < NMMAP; i++){
+			mi = &p->mmap_info[i];
+			if(mi->f){
+				if(r_stval() >= mi->addr + mi->offset && r_stval() < (mi->addr + mi->len)){
+					if(mi->valid == -1){
+						mi = 0;
+						break;
+					}
+					// Allocate physical memory and map to the page table.
+					if(uvmalloc(p->pagetable, mi->addr, mi->addr + mi->len, mi->prot << 1) == 0){
+						printf("mmap page fault: uvmalloc error\n");
+					}
+					// Read file data to virtual address.
+					fileread_mmap(mi->f, mi->addr, mi->len);
+					mi->valid = 1;
+					break;
+				}
+			}
+			mi = 0;
+		}
+		
+		if(!mi){
+			printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
+			printf("            sepc=0x%lx stval=0x%lx\n", r_sepc(), r_stval());
+			setkilled(p);
+		}
+	} 
+	else if((which_dev = devintr()) != 0){
     // ok
   } else {
     printf("usertrap(): unexpected scause 0x%lx pid=%d\n", r_scause(), p->pid);
@@ -73,8 +106,9 @@ usertrap(void)
     setkilled(p);
   }
 
-  if(killed(p))
+	if(killed(p)){
     exit(-1);
+	}
 
   // give up the CPU if this is a timer interrupt.
   if(which_dev == 2)

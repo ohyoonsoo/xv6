@@ -508,11 +508,9 @@ uint64
 sys_mmap(void)
 {
 	uint64 addr;
-	int len;
-	int prot;
-	int flags;
-	int fd;
-	int offset;
+	int len, prot, flags, fd, offset;
+	struct proc *p = myproc();
+	struct file *f;
 
 	argaddr(0, &addr);
 	argint(1, &len);
@@ -521,6 +519,43 @@ sys_mmap(void)
 	argint(4, &fd);
 	argint(5, &offset);
 
+	// Check if there's a file for given file descriptor.
+	if((f = p->ofile[fd]) == 0){
+		printf("mmap: file descriptor %d not exist\n", fd);
+		return -1;
+	}
+	
+	// Check if the permission of file and mmap request are same
+	if((!f->readable) && (prot & PROT_READ)){
+		return -1;
+	}
+	if((!(flags & MAP_PRIVATE)) && (!f->writable) && (prot & PROT_WRITE)){
+		return -1;
+	}
+
+	// Set the appropriate value for addr
+	// and update the memory size of the process.
+	addr = p->sz;
+	p->sz = PGROUNDUP((p->sz + len));
+
+	// Set the offset to 0.
+	offset = 0;
+
+	// Insert the data into the process mmap_info.
+	for(int i = 0; i < NMMAP; i++){
+		if(!p->mmap_info[i].f){
+			p->mmap_info[i].addr = addr;
+			p->mmap_info[i].len = len;
+			p->mmap_info[i].prot = prot;
+			p->mmap_info[i].flags = flags;
+			p->mmap_info[i].f = filedup(p->ofile[fd]);
+			p->mmap_info[i].offset = offset;
+			p->mmap_info[i].valid = 0;
+			return addr;
+		}
+	}
+
+	printf("Not enough space for mmap array in process.\n");
 	return -1;
 }
 
@@ -529,9 +564,47 @@ sys_munmap(void)
 {
 	uint64 addr;
 	int len;
+	struct proc *p = myproc();
+	struct mmap_info *mi = 0;
 
 	argaddr(0, &addr);
 	argint(1, &len);
+	
+	// Find the mmap_info structure that is associated to munmap
+	for(int i = 0; i < NMMAP; i++){
+		mi = &p->mmap_info[i];
+		if(mi->f && addr >= mi->addr && addr < mi->addr + mi->len){
+			break;
+		}
+		mi = 0;
+	}
 
-	return -1;
+	if(!mi){
+		printf("munmap: error\n");
+		return -1;
+	}
+
+	// If it is already deallocated by the
+	// associated munmap, return 0.
+	if(mi->valid != 1){
+		return 0;
+	}
+	
+	// Write back to the file if the flag is MAP_SHARED
+	if(mi->flags & MAP_SHARED){
+		filewrite_munmap(mi->f, addr, addr - mi->addr, len);
+	}
+
+	// Deallocate the memory
+	uvmdealloc(p->pagetable, addr + len, addr);
+
+	// Decraese the ref count of the file
+	if((addr + len) == (mi->addr + mi->len)){
+		fileclose(mi->f);
+		mi->valid = -1;
+		return 0;
+	}
+	mi->offset += len;
+
+	return 0;
 }

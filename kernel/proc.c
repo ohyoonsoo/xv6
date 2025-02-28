@@ -5,6 +5,7 @@
 #include "spinlock.h"
 #include "proc.h"
 #include "defs.h"
+#include "fcntl.h"
 
 struct cpu cpus[NCPU];
 
@@ -124,6 +125,7 @@ allocproc(void)
 found:
   p->pid = allocpid();
   p->state = USED;
+	memset(p->mmap_info, 0, NMMAP * sizeof(p->mmap_info[0]));
 
   // Allocate a trapframe page.
   if((p->trapframe = (struct trapframe *)kalloc()) == 0){
@@ -296,6 +298,24 @@ fork(void)
   }
   np->sz = p->sz;
 
+	// Copy mmap_info from parent to child,
+	// and increase the refcnt of assocaited files.
+	for(int i = 0; i < NMMAP; i++){
+		if(p->mmap_info[i].f){
+			np->mmap_info[i].addr = p->mmap_info[i].addr;
+			np->mmap_info[i].len = p->mmap_info[i].len;
+			np->mmap_info[i].prot = p->mmap_info[i].prot;
+			np->mmap_info[i].flags = p->mmap_info[i].flags;
+			np->mmap_info[i].offset = p->mmap_info[i].offset;
+			np->mmap_info[i].valid = p->mmap_info[i].valid;
+			if(p->mmap_info[i].valid == 1){
+				np->mmap_info[i].f = filedup(p->mmap_info[i].f);
+			} else {
+				np->mmap_info[i].f = p->mmap_info[i].f;
+			}
+		}
+	}
+
   // copy saved user registers.
   *(np->trapframe) = *(p->trapframe);
 
@@ -347,6 +367,7 @@ void
 exit(int status)
 {
   struct proc *p = myproc();
+	struct mmap_info *mi;
 
   if(p == initproc)
     panic("init exiting");
@@ -359,6 +380,22 @@ exit(int status)
       p->ofile[fd] = 0;
     }
   }
+
+	// Ummap the mapped region
+	for(int i = 0; i < NMMAP; i++){
+		mi = &p->mmap_info[i];
+		if(mi->f && mi->valid == 1){
+			// Write back to the file if the flag is MAP_SHARED
+			if(mi->flags & MAP_SHARED){
+				filewrite_munmap(mi->f, mi->addr + mi->offset, mi->offset, mi->len);
+			}
+			// Deallocate the memory
+			uvmdealloc(p->pagetable, mi->addr + mi->len, mi->addr);
+			
+			// Decrease the ref count of the file
+			fileclose(mi->f);
+		}
+	}
 
   begin_op();
   iput(p->cwd);
@@ -692,4 +729,18 @@ procdump(void)
     printf("%d %s %s", p->pid, state, p->name);
     printf("\n");
   }
+}
+
+// Check whether the addr is in the range of mmap region.
+int addr_in_mmap(uint64 addr){
+	struct proc *p = myproc();
+	struct mmap_info mi;
+
+	for(int i = 0; i < NMMAP; i++){
+		mi = p->mmap_info[i];
+		if(mi.f && addr >= mi.addr && addr < (mi.addr + mi.len)){
+			return 1;
+		}
+	}
+	return 0;
 }
