@@ -13,6 +13,8 @@
 #include "stat.h"
 #include "proc.h"
 
+#define min(a, b) ((a) < (b)) ? (a) : (b)
+
 struct devsw devsw[NDEV];
 struct {
   struct spinlock lock;
@@ -180,3 +182,46 @@ filewrite(struct file *f, uint64 addr, int n)
   return ret;
 }
 
+void fileread_mmap(struct file *f, uint64 dst, int n){
+	struct proc *p = myproc();
+	int left = min(f->ip->size, n);
+	int size = 0;
+	int offset = 0;
+	uint64 pa;
+
+	while(left > 0){
+		pa = walkaddr(p->pagetable, dst + offset);
+		size = min(left, PGSIZE);
+
+		ilock(f->ip);
+		if(readi(f->ip, 0, pa, offset, size) <= 0)
+			printf("mmap page fault: readi error\n");
+		iunlock(f->ip);
+
+		left -= size;
+		offset += size;
+	}
+}
+
+void filewrite_munmap(struct file *f, uint64 src, int off, int n){
+	struct proc *p = myproc();
+	int left = min(f->ip->size - off, n);
+	int size = 0;
+	int offset = off;
+	uint64 pa;
+
+	while(left > 0){
+		pa = walkaddr(p->pagetable, src + offset);
+		size = min(left, PGSIZE);
+
+		begin_op();
+		ilock(f->ip);
+		if(writei(f->ip, 0, pa, offset, size) <= 0)
+			printf("munmap: writei error\n");
+		iunlock(f->ip);
+		end_op();
+		
+		left -= size;
+		offset += size;
+	}
+}

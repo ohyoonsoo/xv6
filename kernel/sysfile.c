@@ -508,11 +508,9 @@ uint64
 sys_mmap(void)
 {
 	uint64 addr;
-	int len;
-	int prot;
-	int flags;
-	int fd;
-	int offset;
+	int len, prot, flags, fd, offset;
+	struct proc *p = myproc();
+	struct file *f;
 
 	argaddr(0, &addr);
 	argint(1, &len);
@@ -521,6 +519,41 @@ sys_mmap(void)
 	argint(4, &fd);
 	argint(5, &offset);
 
+	// Check if there's no file for fd file descriptor.
+	if((f = p->ofile[fd]) == 0){
+		printf("mmap: no file for file descriptor\n");
+		return -1;
+	}
+	
+	// Check if the permissino of file and mmap request are same.
+	if((!f->readable) && (prot & PROT_READ))
+		return -1;
+	if((!(flags & MAP_PRIVATE)) && (!f->writable) && (prot & PROT_WRITE))
+		return -1;
+
+	// Set the apporpriate value for addr
+	// and update the memory size of the process
+	addr = p->sz;
+	p->sz = PGROUNDUP(p->sz + len);
+	printf("mmap: %lx %d\n", addr, len); // debug
+
+	// Set the offset to 0.
+	offset = 0;
+
+	// Insert the data into the process's mmap_info.
+	for(int i = 0; i < NMMAP; i++){
+		if(!p->mmap_info[i].f){
+			p->mmap_info[i].addr = addr;
+			p->mmap_info[i].len = len;
+			p->mmap_info[i].prot = prot;
+			p->mmap_info[i].flags = flags;
+			p->mmap_info[i].f = filedup(p->ofile[fd]);
+			p->mmap_info[i].offset = offset;
+			p->mmap_info[i].valid = 0;
+			return addr;
+		}
+	}
+	printf("Not enough space for new mmap.\n");
 	return -1;
 }
 
@@ -529,9 +562,43 @@ sys_munmap(void)
 {
 	uint64 addr;
 	int len;
+	struct proc *p = myproc();
+	struct mmap_info *mi = 0;
 
 	argaddr(0, &addr);
 	argint(1, &len);
 
-	return -1;
+	// Find the mmap_info that contains the addr
+	for(int i = 0; i < NMMAP; i++){
+		mi = &p->mmap_info[i];
+		if(mi->f && addr >= (mi->addr + mi->offset) && addr < (mi->addr + mi->len)){
+			break;
+		}
+		mi = 0;
+	}
+
+	// If cannot find the mmap_info.
+	if(!mi){
+		printf("munmap: error\n");
+		return -1;
+	}
+
+	// Write back to the file if the flag is MAP_SHARED
+	if(mi->flags & MAP_SHARED){
+		filewrite_munmap(mi->f, addr, mi->offset, len);
+	}
+
+	// Deallocate the memory
+	uvmdealloc(p->pagetable, addr + len, addr);
+
+	// Decrease the ref count of the file
+	if((addr + len) == (mi->addr + mi->len)){
+		fileclose(mi->f);
+		mi->valid = -1;
+		return 0;
+	}
+
+	mi->offset += len;
+	mi->valid = 2;
+	return 0;
 }
